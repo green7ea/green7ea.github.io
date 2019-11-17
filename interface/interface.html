@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title> Leveraging types for better APIs </title>
+    <link rel="stylesheet" href="/static/katex.min.css" />
+    <link rel="stylesheet" href="/static/tufte.css" />
+  </head>
+  <body>
+        <header>
+      <h4>
+        <a href="/" style="background: none; color: var(--fg)">
+          green7ea's blog
+        </a>
+      </h4>
+
+      <a href="https://github.com/green7ea/blog" style="background: none">
+        <svg
+          height="32"
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          version="1.1"
+          width="32"
+          data-view-component="true"
+          class="octicon octicon-mark-github v-align-middle"
+        >
+          <path
+            d="M12 1C5.9225 1 1 5.9225 1 12C1 16.8675 4.14875 20.9787 8.52125 22.4362C9.07125 22.5325 9.2775 22.2025 9.2775 21.9137C9.2775 21.6525 9.26375 20.7862 9.26375 19.865C6.5 20.3737 5.785 19.1912 5.565 18.5725C5.44125 18.2562 4.905 17.28 4.4375 17.0187C4.0525 16.8125 3.5025 16.3037 4.42375 16.29C5.29 16.2762 5.90875 17.0875 6.115 17.4175C7.105 19.0812 8.68625 18.6137 9.31875 18.325C9.415 17.61 9.70375 17.1287 10.02 16.8537C7.5725 16.5787 5.015 15.63 5.015 11.4225C5.015 10.2262 5.44125 9.23625 6.1425 8.46625C6.0325 8.19125 5.6475 7.06375 6.2525 5.55125C6.2525 5.55125 7.17375 5.2625 9.2775 6.67875C10.1575 6.43125 11.0925 6.3075 12.0275 6.3075C12.9625 6.3075 13.8975 6.43125 14.7775 6.67875C16.8813 5.24875 17.8025 5.55125 17.8025 5.55125C18.4075 7.06375 18.0225 8.19125 17.9125 8.46625C18.6138 9.23625 19.04 10.2125 19.04 11.4225C19.04 15.6437 16.4688 16.5787 14.0213 16.8537C14.42 17.1975 14.7638 17.8575 14.7638 18.8887C14.7638 20.36 14.75 21.5425 14.75 21.9137C14.75 22.2025 14.9563 22.5462 15.5063 22.4362C19.8513 20.9787 23 16.8537 23 12C23 5.9225 18.0775 1 12 1Z"
+          ></path>
+        </svg>
+      </a>
+    </header>
+    <article id="article">
+      <nav class="toc">
+        <ol class="toc-level toc-level-1">
+          <li class="toc-item toc-item-h1">
+            <a
+              class="toc-link toc-link-h1"
+              href="#leveraging-types-for-better-apis"
+              >Leveraging types for better APIs</a
+            >
+            <ol class="toc-level toc-level-2">
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#modules-and-interfaces"
+                  >Modules and interfaces</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#static-type-checking"
+                  >Static type checking</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#null-safety"
+                  >Null safety</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#tagged-unions"
+                  >Tagged unions</a
+                >
+                <ol class="toc-level toc-level-3">
+                  <li class="toc-item toc-item-h3">
+                    <a
+                      class="toc-link toc-link-h3"
+                      href="#state-with-tagged-unions"
+                      >State with tagged unions</a
+                    >
+                  </li>
+                  <li class="toc-item toc-item-h3">
+                    <a
+                      class="toc-link toc-link-h3"
+                      href="#lists-with-tagged-unions"
+                      >Lists with tagged unions</a
+                    >
+                  </li>
+                </ol>
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#conclusion"
+                  >Conclusion</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#footnote-label"
+                  >Footnotes</a
+                >
+              </li>
+            </ol>
+          </li>
+        </ol>
+      </nav>
+      <h1 id="leveraging-types-for-better-apis">
+        <a
+          aria-hidden="true"
+          tabindex="-1"
+          href="#leveraging-types-for-better-apis"
+          ><span class="icon icon-link"></span></a
+        >Leveraging types for better APIs
+      </h1>
+      <h2 id="modules-and-interfaces">
+        <a aria-hidden="true" tabindex="-1" href="#modules-and-interfaces"
+          ><span class="icon icon-link"></span></a
+        >Modules and interfaces
+      </h2>
+      <blockquote>
+        <p>
+          Well-designed computational systems, like well-designed automobiles or
+          nuclear reactors, are designed in a modular manner, so that the parts
+          can be constructed, replaced, and debugged separately.
+        </p>
+        <p>
+          —
+          <a
+            href="https://mitp-content-server.mit.edu/books/content/sectbyfn/books_pres_0/6515/sicp.zip/full-text/book/book-Z-H-9.html#%25_chap_1"
+            >Structure and Interpretation of Computer Programs</a
+          >
+        </p>
+      </blockquote>
+      <p>
+        Software is built by breaking a complex problem down into smaller
+        modules that each solve a simpler problem. We can further break down a
+        module we just created into ever smaller parts until we have something
+        simple enough to work with.
+      </p>
+      <p>
+        All of these modules then have to be connected to each other to solve
+        our original, more complex problem. Connecting these modules together
+        can in itself become a difficult problem — especially as the number of
+        modules increases.
+      </p>
+      <p>
+        The key to managing the complexity that arises from connecting modules
+        together is having well-defined interfaces. A well-defined interface is
+        typed in such a way that we can rely on compilers to ensure that we
+        respect the interfaces that we use.
+      </p>
+      <p>
+        When modules are written in the same programming language, the typing
+        information for the interfaces is usually already in place. Often
+        though, modules are written in different languages or are written by
+        different organizations and so the typing information is missing. Adding
+        typing formation to those interfaces presents a great opportunity to
+        improve the software we write.
+      </p>
+      <p>
+        We often overlook the quantity errors that can be caught by the compiler
+        when it has good type information. There are surprisingly few typing
+        techniques that we need to avoid many common errors. With these
+        techniques, compiler validation becomes the most powerful tool for
+        catching errors.
+      </p>
+      <p>
+        The traditional test automation pyramid<sup
+          ><a
+            href="#user-content-fn-pyramid"
+            id="user-content-fnref-pyramid"
+            data-footnote-ref=""
+            aria-describedby="footnote-label"
+            >1</a
+          ></sup
+        >
+        has unit tests as a foundation but it might be better to place compiler
+        validation bellow unit tests. Unit tests validate that assertions given
+        by the tests hold true — compilers are able to validate that assertions
+        given by the types hold true. Here's what our updated test automation
+        pyramid can look like.
+      </p>
+      <p><img src="pyramid.svg" alt="" /></p>
+      <p>With this in mind, the questions becomes</p>
+      <blockquote>
+        <p>
+          What type information can we give the compiler to help us catch
+          errors, especially, around our interfaces?
+        </p>
+      </blockquote>
+      <h2 id="static-type-checking">
+        <a aria-hidden="true" tabindex="-1" href="#static-type-checking"
+          ><span class="icon icon-link"></span></a
+        >Static type checking
+      </h2>
+      <blockquote>
+        <p>Code never lies, comments sometimes do.</p>
+        <p>— Ron Jeffries</p>
+      </blockquote>
+      <p>
+        The most basic type contract is being able to specify what type of value
+        you expect to find in a variable. Most programming languages have static
+        typing built-in but server requests often lack typing information — the
+        data is often untyped <code>json</code> or <code>xml</code>.
+      </p>
+      <p>
+        To show an example of typing at work, we can use Typescript with simple
+        functions as our interface. Typescript lets us easily compare a typed
+        function and an untyped equivalent to highlight errors that typing can
+        prevent. Even though a function is used here, it's important to remember
+        that this also applies to the interfaces between our modules.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">typed_sum</span>(<span class="hljs-params"><span class="hljs-attr">a</span>: <span class="hljs-built_in">number</span>, <span class="hljs-attr">b</span>: <span class="hljs-built_in">number</span></span>): <span class="hljs-built_in">number</span> {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-comment">/**
+ * Well intentioned comments.
+ *
+ * <span class="hljs-doctag">@param</span> a is a number
+ * <span class="hljs-doctag">@param</span> b is a number
+ *
+ * <span class="hljs-doctag">@returns</span> a number
+ */</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">untyped_sum</span>(<span class="hljs-params">a, b</span>) {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-comment">// Behaviour that is hard to predict, potential bugs</span>
+<span class="hljs-title function_">untyped_sum</span>(<span class="hljs-string">"1"</span>, <span class="hljs-string">"2"</span>); <span class="hljs-comment">// → "12"</span>
+
+<span class="hljs-comment">// A compiler error</span>
+<span class="hljs-title function_">typed_sum</span>(<span class="hljs-string">"1"</span>, <span class="hljs-string">"2"</span>);
+</code></pre>
+      <h2 id="null-safety">
+        <a aria-hidden="true" tabindex="-1" href="#null-safety"
+          ><span class="icon icon-link"></span></a
+        >Null safety
+      </h2>
+      <blockquote>
+        <p>
+          I call it my billion-dollar mistake. It was the invention of the null
+          reference in 1965… This has led to innumerable errors,
+          vulnerabilities, and system crashes, which have probably caused a
+          billion dollars of pain and damage in the last forty years.
+        </p>
+        <p>— Tony Hoare</p>
+      </blockquote>
+      <p>
+        Null references have been around for a long time but null safety has
+        resurfaced in the last 10 years<sup
+          ><a
+            href="#user-content-fn-null"
+            id="user-content-fnref-null"
+            data-footnote-ref=""
+            aria-describedby="footnote-label"
+            >2</a
+          ></sup
+        >. The concept is simple, you have to indicate when a value can be
+        missing. The alternative — any value can be missing without warning —
+        sounds crazy but it's been a standard part of many programming languages
+        for so long that we've developed Stockholm syndrome.
+      </p>
+      <p>
+        Using a value as if it was there when it isn't leads to crashes or
+        unexpected behaviour. With null safety, when a value is potentially
+        missing, the compiler can make sure we do a null check before the value
+        can be used.
+      </p>
+      <p>
+        It's incredible to see how many errors disappear with this simple
+        change. This is especially true across interfaces, the errors are
+        usually harder to diagnose and resolve because of the extra distance
+        between the two pieces of code.
+      </p>
+      <p>
+        Once again, Typescript lets us illustrate both sides of the coin in the
+        same program using functions.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">nullsafe_sum</span>(<span class="hljs-params"><span class="hljs-attr">a</span>: <span class="hljs-built_in">number</span>, <span class="hljs-attr">b</span>: <span class="hljs-built_in">number</span></span>): <span class="hljs-built_in">number</span> {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">untyped_sum</span>(<span class="hljs-params">a, b</span>) {
+  <span class="hljs-keyword">return</span> a + b;
+}
+
+<span class="hljs-comment">// Behaviour that is hard to predict, potential bugs</span>
+<span class="hljs-title function_">untyped_sum</span>(<span class="hljs-number">5</span>, <span class="hljs-literal">null</span>);      <span class="hljs-comment">// → 5</span>
+<span class="hljs-title function_">untyped_sum</span>(<span class="hljs-number">5</span>, <span class="hljs-literal">undefined</span>); <span class="hljs-comment">// → NaN (Not a Number)</span>
+
+<span class="hljs-comment">// Caught by the compiler</span>
+<span class="hljs-title function_">nullsafe_sum</span>(<span class="hljs-number">5</span>, <span class="hljs-literal">null</span>);      <span class="hljs-comment">// Compiler error</span>
+<span class="hljs-title function_">nullsafe_sum</span>(<span class="hljs-number">5</span>, <span class="hljs-literal">undefined</span>); <span class="hljs-comment">// Compiler error</span>
+</code></pre>
+      <h2 id="tagged-unions">
+        <a aria-hidden="true" tabindex="-1" href="#tagged-unions"
+          ><span class="icon icon-link"></span></a
+        >Tagged unions
+      </h2>
+      <blockquote>
+        <p>
+          The best way to eliminate exception handling complexity is to define
+          your APIs so that there are no exceptions to handle: define errors out
+          of existence.
+        </p>
+        <p>— A Philosophy of Software Design</p>
+      </blockquote>
+      <p>
+        Just like null safety, tagged unions aren't a new concept<sup
+          ><a
+            href="#user-content-fn-taggedold"
+            id="user-content-fnref-taggedold"
+            data-footnote-ref=""
+            aria-describedby="footnote-label"
+            >3</a
+          ></sup
+        >
+        but are becoming a standard part of many new programming languages<sup
+          ><a
+            href="#user-content-fn-taggednew"
+            id="user-content-fnref-taggednew"
+            data-footnote-ref=""
+            aria-describedby="footnote-label"
+            >4</a
+          ></sup
+        >.
+      </p>
+      <p>
+        Tagged unions allow us to create data structures that better fit our use
+        cases. They do this by being able to represent a choice as data. Each
+        choice has its own associated data.
+      </p>
+      <p>
+        When used correctly, the ability to represent a choice makes
+        inconsistent states impossible to represent. It's surprising how many
+        errors ultimately boil down to ambiguous states.
+      </p>
+      <h3 id="state-with-tagged-unions">
+        <a aria-hidden="true" tabindex="-1" href="#state-with-tagged-unions"
+          ><span class="icon icon-link"></span></a
+        >State with tagged unions
+      </h3>
+      <p>
+        The simplest choice we can represent is true or false. This is often
+        useful when we want to represent the return value of a function that can
+        fail. The successful case is mapped to <code>true</code> and we
+        associate the normal result of the function with it. The error case is
+        mapped to false and we associate an error message with it.
+      </p>
+      <p>
+        This sounds more complex than it is, hopefully another Typescript
+        example can clear things up.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Result</span> {
+  <span class="hljs-attr">tag</span>: <span class="hljs-string">'result'</span>;
+  <span class="hljs-attr">value</span>: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">Error</span> {
+  <span class="hljs-attr">tag</span>: <span class="hljs-string">'error'</span>;
+  <span class="hljs-attr">message</span>: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">divide</span>(<span class="hljs-params"><span class="hljs-attr">a</span>: <span class="hljs-built_in">number</span>, <span class="hljs-attr">b</span>: <span class="hljs-built_in">number</span></span>): <span class="hljs-title class_">Result</span> | <span class="hljs-title class_">Error</span> {
+  <span class="hljs-keyword">if</span> (b === <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">tag</span>: <span class="hljs-string">'error'</span>,
+      <span class="hljs-attr">message</span>: <span class="hljs-string">"Can't divide by 0"</span>,
+    };
+  }
+
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">tag</span>: <span class="hljs-string">'result'</span>,
+    <span class="hljs-attr">value</span>: a / b,
+  };
+}
+</code></pre>
+      <p>
+        This might look a lot like exceptions but there are two key differences.
+      </p>
+      <ol>
+        <li>
+          Exceptions modify a program's control flow which makes it hard to
+          transfer across to another process or program.
+        </li>
+        <li>
+          Tagged unions combine with other data types, we can have a list of
+          results or errors.
+        </li>
+      </ol>
+      <p>
+        The example above is the simplest case where there are only two states —
+        tagged unions work for more than just two states.
+      </p>
+      <p>
+        Let's say we have a device that start out as offline. It then connects
+        to our server and downloads docker images as part of an initializing
+        phase. Once those images are booted up and sending us sensor data, the
+        device is considered online. We can model that with the diagram below
+      </p>
+      <p>
+        If we had to represent this without tagged unions, we might combine all
+        the different states into one bigger data structure and have
+        <code>null</code> for the parts that don't make sense in the current
+        state.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Device</span> {
+  <span class="hljs-attr">status</span>: <span class="hljs-string">'offline'</span> | <span class="hljs-string">'initializing'</span> | <span class="hljs-string">'online'</span>;
+  <span class="hljs-attr">ip</span>: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  <span class="hljs-attr">progress</span>: <span class="hljs-built_in">number</span> | <span class="hljs-literal">null</span>;
+  <span class="hljs-attr">sensorData</span>: <span class="hljs-title class_">SensorData</span> | <span class="hljs-literal">null</span>;
+}
+</code></pre>
+      <p>
+        With this approach, knowing which fields have meaningful values based on
+        the current <code>status</code> is implicit information. When programs
+        get big and there are many interfaces, this quickly becomes extremely
+        complex.
+      </p>
+      <p>
+        Another shortcoming of this approach is that it's possible to have
+        states that don't make any sense, what does it mean when an
+        <code>offline</code> device that has an <code>ip</code>?
+      </p>
+      <p>Tagged unions solve both of these problems as can be seen bellow</p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">OfflineDevice</span> {
+  <span class="hljs-attr">status</span>: <span class="hljs-string">'offline'</span>;
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">InitializingDevice</span> {
+  <span class="hljs-attr">status</span>: <span class="hljs-string">'initializing'</span>;
+  <span class="hljs-attr">ip</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">progress</span>: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">OnlineDevice</span> {
+  <span class="hljs-attr">status</span>: <span class="hljs-string">'online'</span>;
+  <span class="hljs-attr">ip</span>: <span class="hljs-built_in">string</span>;
+  <span class="hljs-attr">sensorData</span>: <span class="hljs-title class_">SensorData</span>;
+}
+
+<span class="hljs-keyword">type</span> <span class="hljs-title class_">Device</span> = <span class="hljs-title class_">OfflineDevice</span> | <span class="hljs-title class_">InitializingDevice</span> | <span class="hljs-title class_">OnlineDevice</span>;
+</code></pre>
+      <p>
+        Another approach without tagged unions would be to use the same data
+        structures as nullable.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Device</span> {
+  <span class="hljs-attr">offline</span>: <span class="hljs-title class_">OfflineDevice</span> | <span class="hljs-literal">null</span>;
+  <span class="hljs-attr">initializing</span>: <span class="hljs-title class_">InitializingDevice</span> | <span class="hljs-literal">null</span>;
+  <span class="hljs-attr">online</span>: <span class="hljs-title class_">OnlineDevice</span> | <span class="hljs-literal">null</span>;
+}
+</code></pre>
+      <p>
+        This approach still leaves us with the possibility of having a
+        contradicting state that doesn't make sense. What do you do with a
+        device if every field is null or if all three have values?
+      </p>
+      <h3 id="lists-with-tagged-unions">
+        <a aria-hidden="true" tabindex="-1" href="#lists-with-tagged-unions"
+          ><span class="icon icon-link"></span></a
+        >Lists with tagged unions
+      </h3>
+      <p>
+        Tagged unions are also useful to represent a list of different types.
+        Many programming languages use inheritance to model such a list but,
+        just like exceptions, inheritance acts on a program's control flow.
+        Whenever we are interacting with the control flow, crossing the process
+        boundary and combining with other typing concepts becomes difficult.
+      </p>
+      <p>
+        Let's say a connected devices can be robots, sensors or servers — each
+        with their own associated information.
+      </p>
+      <p>
+        With tagged unions, we can have a list that combines multiple types.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> devices = (<span class="hljs-title class_">Robot</span> | <span class="hljs-title class_">Sensor</span> | <span class="hljs-title class_">Server</span>)[];
+</code></pre>
+      <p>
+        Without tagged unions, we could fall back to having multiple lists — one
+        per type. The downside of this approach is that the sorting information
+        is lost as one list is decoupled into three.
+      </p>
+      <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> robots = <span class="hljs-title class_">Robot</span>[];
+<span class="hljs-keyword">const</span> sensors = <span class="hljs-title class_">Sensor</span>[];
+<span class="hljs-keyword">const</span> servers = <span class="hljs-title class_">Server</span>[];
+</code></pre>
+      <h2 id="conclusion">
+        <a aria-hidden="true" tabindex="-1" href="#conclusion"
+          ><span class="icon icon-link"></span></a
+        >Conclusion
+      </h2>
+      <p>
+        A modern type system, offering <strong>static types</strong>,
+        <strong>null safety</strong> and <strong>tagged unions</strong> is a
+        powerful tool that enables the compiler to catch many errors with little
+        effort. Interfaces are one of the most important places to apply typing
+        as that can serve as a contract between modules that is enforced by the
+        compiler.
+      </p>
+      <p>
+        When we don't have static type checking, we rely on informal agreements:
+      </p>
+      <ul>
+        <li>comments,</li>
+        <li>documentation,</li>
+        <li>meeting notes,</li>
+        <li>best practices,</li>
+        <li>hopeful optimism,</li>
+        <li>…</li>
+      </ul>
+      <p>
+        What all these have in common is that they rely on developers to ensure
+        everything fits and when we don't respect the agreements, we get
+        run-time crashes or unexpected behaviour.
+      </p>
+      <p>
+        These agreements are usually respected at first but start to break as
+        the program grows and evolves. This is especially painful for interfaces
+        where it's harder to make sure that both sides of the interface evolve
+        in the same way.
+      </p>
+      <section data-footnotes="" class="footnotes">
+        <h2 class="sr-only" id="footnote-label">
+          <a aria-hidden="true" tabindex="-1" href="#footnote-label"
+            ><span class="icon icon-link"></span></a
+          >Footnotes
+        </h2>
+        <ol>
+          <li id="user-content-fn-pyramid">
+            <p>
+              Test Automation Pyramid —
+              <a
+                href="https://www.mountaingoatsoftware.com/books/succeeding-with-agile-software-development-using-scrum"
+                >Succeeding with Agile</a
+              >
+              (Mike Cohn)
+              <a
+                href="#user-content-fnref-pyramid"
+                data-footnote-backref=""
+                aria-label="Back to reference 1"
+                class="data-footnote-backref"
+                >↩</a
+              >
+            </p>
+          </li>
+          <li id="user-content-fn-null">
+            <p>
+              A few languages with null safety <strong>Typescript</strong>,
+              <strong>Rust</strong>, <strong>Kotlin</strong>,
+              <strong>Swift</strong>.
+              <a
+                href="#user-content-fnref-null"
+                data-footnote-backref=""
+                aria-label="Back to reference 2"
+                class="data-footnote-backref"
+                >↩</a
+              >
+            </p>
+          </li>
+          <li id="user-content-fn-taggedold">
+            <p>
+              Early languages implementing tagged unions
+              <strong>ALGOL 68</strong>, <strong>ML</strong>,
+              <strong>Pascal</strong>, <strong>Ada</strong>,
+              <strong>Modula-2</strong>, <strong>Haskell</strong>.
+              <a
+                href="#user-content-fnref-taggedold"
+                data-footnote-backref=""
+                aria-label="Back to reference 3"
+                class="data-footnote-backref"
+                >↩</a
+              >
+            </p>
+          </li>
+          <li id="user-content-fn-taggednew">
+            <p>
+              New languages implementing tagged unions <strong>Rust</strong>,
+              <strong>Swift</strong>, <strong>Scala</strong>,
+              <strong>Typescript</strong>, <strong>Kotlin</strong>,
+              <strong>Python 3.9+</strong>.
+              <a
+                href="#user-content-fnref-taggednew"
+                data-footnote-backref=""
+                aria-label="Back to reference 4"
+                class="data-footnote-backref"
+                >↩</a
+              >
+            </p>
+          </li>
+        </ol>
+      </section>
+    </article>
+    <script type="module">
+      import mermaid from "/static/mermaid.esm.min.mjs";
+
+      function update_content(new_content) {
+        document.getElementById("article").innerHTML = new_content;
+      }
+
+      function connect() {
+        const l = window.location;
+        const url = "ws://" + l.host + l.pathname;
+        const ws = new WebSocket(url);
+
+        ws.addEventListener("message", (event) => {
+          update_content(event.data);
+          mermaid.run();
+        });
+      }
+
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+      });
+      window.addEventListener("load", connect);
+    </script>
+  </body>
+</html>
