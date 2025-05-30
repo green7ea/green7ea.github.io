@@ -84,19 +84,17 @@
         >Modern C++ — RAII
       </h1>
       <p>
-        <strong>Modern C++</strong> embraces the features from
-        <strong>C++11</strong> which lay the foundation for a new generation of
-        C++. It introduced <strong>move semantics</strong> and embraced
-        <strong>RAII in the standard library</strong> (<code>unique_ptr</code>,
+        Modern C++ embraces the features from C++11 which lay the foundation for
+        a new generation of C++. It introduced move semantics and embraced RAII
+        in the standard library (<code>unique_ptr</code>,
         <code>shared_ptr</code>, <code>lock_guard</code>).
       </p>
       <p>
         Embracing <strong>R</strong>esource <strong>A</strong>cquisition
         <strong>I</strong>s <strong>I</strong>nitialization (RAII) makes C++ the
         safest, most productive and fun C++ has ever been. Unfortunately, to
-        leverage RAII, you need a good <strong>understanding</strong> of
-        <strong>why it's needed</strong> and <strong>how it works</strong> which
-        is what I hope to distill for you.
+        leverage RAII, you need a good understanding of why it's needed and how
+        it works which is what I hope to distill for you.
       </p>
       <p>
         I'll explain RAII by example while referencing the
@@ -116,9 +114,9 @@
           href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rr-raii"
           >RAII</a
         >
-        is to <strong>manage resources using variables and scope</strong> so
-        that resources are automatically freed. A resource is anything that can
-        be acquired and must later be released, not just memory.
+        is to manage resources using variables and scope so that resources are
+        automatically freed. A resource is anything that can be acquired and
+        must later be released, not just memory.
       </p>
 
       <table>
@@ -144,18 +142,14 @@
         </tbody>
       </table>
       <p>
-        The main idea is to acquire a <strong>resource</strong> and
-        <strong>store its handle in a <code>private</code> member</strong> in a
-        class. We can then control its access and
-        <strong>release the resource in the <code>destructor</code></strong
-        >.
+        The main idea is to acquire a resource and store its handle in a
+        <code>private</code> member in a class. We can then control its access
+        and release the resource in the <code>destructor</code>.
       </p>
       <p>
-        We'll create a
-        <strong>safe wrapper around a UNIX file descriptor</strong> keeping in
+        We'll create a safe wrapper around a UNIX file descriptor keeping in
         mind that the same concept can be applied to any other resource.
-        Normally, the
-        <strong>standard library has a robust implementation</strong> already in
+        Normally, the standard library has a robust implementation already in
         place so make sure you check there first to save yourself some work.
       </p>
       <h1 id="naive-implementation">
@@ -164,9 +158,8 @@
         >Naive implementation
       </h1>
       <p>
-        We'll start off with the <strong>following definition</strong> and
-        assume that there's a <strong>reasonable implementation</strong> for
-        each prototype.
+        We'll start off with the following definition and assume that there's a
+        reasonable implementation for each prototype.
       </p>
       <pre><code class="hljs language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">NaiveFile</span> {
 <span class="hljs-keyword">public</span>:
@@ -182,9 +175,7 @@
   <span class="hljs-type">int</span> fd;
 };
 </code></pre>
-      <p>
-        The following code <strong>behaves in ways that are unintended</strong>:
-      </p>
+      <p>The following code behaves in ways that are unintended:</p>
       <pre><code class="hljs language-c++"><span class="hljs-comment">// Notice we pass by copy</span>
 <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">accidental_copy</span><span class="hljs-params">(NaiveFile file)</span></span>;
 
@@ -199,8 +190,7 @@
 }
 </code></pre>
       <p>
-        <strong>Running</strong> the above code with
-        <strong>trace printing</strong> results in the following:
+        Running the above code with trace printing results in the following:
       </p>
       <pre><code>(fd 3) open main.cpp
 (fd 3) ~NaiveFile closing
@@ -210,13 +200,11 @@
   (fd 3) Couldn't close file: 'Bad file descriptor'
 </code></pre>
       <p>
-        We can see that the <strong>destructor is called 3 times</strong> and we
-        <strong>free the resource each time</strong>. This happens
-        <strong>once for the main instance</strong> and
-        <strong>once for each copy</strong> as the comments predicted. We
-        <strong>shouldn't free a resource more than once</strong>, so we get a
-        'Bad file descriptor' error when we try to close the file the second or
-        third time.
+        We can see that the destructor is called 3 times and we free the
+        resource each time. This happens once for the main instance and once for
+        each copy as the comments predicted. We shouldn't free a resource more
+        than once, so we get a 'Bad file descriptor' error when we try to close
+        the file the second or third time.
       </p>
       <h1 id="understanding-the-problem">
         <a aria-hidden="true" tabindex="-1" href="#understanding-the-problem"
@@ -224,11 +212,9 @@
         >Understanding the problem
       </h1>
       <p>
-        Before fixing the problem, we should
-        <strong>understand what's going on</strong>. The first thing to know is
-        that, under certain conditions,
-        <strong>C++ compilers implement a default</strong> version of the
-        following:
+        Before fixing the problem, we should understand what's going on. The
+        first thing to know is that, under certain conditions, C++ compilers
+        implement a default version of the following:
       </p>
 
       <table>
@@ -266,28 +252,22 @@
         </tbody>
       </table>
       <p>
-        These are known as <strong>special operations</strong> and together they
-        <strong>control an object's life cycle</strong> (create, copy, move,
-        destroy) (<a
+        These are known as special operations and together they control an
+        object's life cycle (create, copy, move, destroy) (<a
           href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#S-ctor"
           >guidelines C.ctor</a
-        >). For RAII,
-        <strong>we don't have to worry about the default constructor</strong>
-        since it's either a sane default or we implemented a constructor
-        ourselves.
+        >). For RAII, we don't have to worry about the default constructor since
+        it's either a sane default or we implemented a constructor ourselves.
       </p>
       <p>
-        The defaults are pretty simple — if you have
-        <strong>no implementation</strong>, a <strong>default</strong> is put in
-        place that <strong>calls the same operation for each member</strong>. If
-        a <strong>member has no implementation</strong>, the
-        <strong>default isn't created</strong>.
+        The defaults are pretty simple — if you have no implementation, a
+        default is put in place that calls the same operation for each member.
+        If a member has no implementation, the default isn't created.
       </p>
       <p>
-        <strong>In our case</strong>, we implemented a constructor so there
-        <strong>won't be a default constructor</strong>. The only member is an
-        <code>int</code>, so <strong>all the other defaults</strong> will be
-        created.
+        In our case, we implemented a constructor so there won't be a default
+        constructor. The only member is an <code>int</code>, so all the other
+        defaults will be created.
       </p>
 
       <table>
@@ -327,17 +307,15 @@
         </tbody>
       </table>
       <p>
-        In the table, we highlighted that the
-        <strong>compiler implemented a default copy constructor</strong>
-        (triggered by copy 1) and a
-        <strong>default copy assignment</strong> (triggered by copy 2). This is
-        what caused the unintended behaviour.
+        In the table, we highlighted that the compiler implemented a default
+        copy constructor (triggered by copy 1) and a default copy assignment
+        (triggered by copy 2). This is what caused the unintended behaviour.
       </p>
       <p>
         The default that is put in place treats the <code>int</code> as
-        copyable. That's a problem —
-        <strong>file descriptors aren't simple numbers</strong> that can be
-        copied since they're a handle to a resource the kernel holds for us.
+        copyable. That's a problem — file descriptors aren't simple numbers that
+        can be copied since they're a handle to a resource the kernel holds for
+        us.
       </p>
       <h1 id="the-fix--rule-of-3">
         <a aria-hidden="true" tabindex="-1" href="#the-fix--rule-of-3"
@@ -345,10 +323,9 @@
         >The fix — rule of 3
       </h1>
       <p>
-        The fix is easy: <strong>make copies impossible</strong> by deleting the
-        operations that we don't want to default. With this change, the
-        <strong>destructor will only be called once</strong> and the
-        <strong>resource will only be freed once</strong>.
+        The fix is easy: make copies impossible by deleting the operations that
+        we don't want to default. With this change, the destructor will only be
+        called once and the resource will only be freed once.
       </p>
       <pre><code class="hljs language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">SafeFile</span> {
 <span class="hljs-keyword">public</span>:
@@ -367,18 +344,15 @@
 };
 </code></pre>
       <p>
-        Now, our <strong>file wrapper can't be misused</strong> since trying to
-        call a deleted operation will cause a compilation error. To highlight
-        that our implementation is now safe, it's now called
-        <code>SafeFile</code>.
+        Now, our file wrapper can't be misused since trying to call a deleted
+        operation will cause a compilation error. To highlight that our
+        implementation is now safe, it's now called <code>SafeFile</code>.
       </p>
       <p>
-        As a rule
-        <strong>if you implement a destructor or a copy operation</strong>,
-        you're likely doing resource management and have to
-        <strong>implement all 3</strong>. If you don't, you're likely to end up
-        with an error like we did above. This is known as
-        <strong>the rule of 3</strong>.
+        As a rule if you implement a destructor or a copy operation, you're
+        likely doing resource management and have to implement all 3. If you
+        don't, you're likely to end up with an error like we did above. This is
+        known as the rule of 3.
       </p>
 
       <table>
@@ -401,28 +375,26 @@
       </table>
       <p>
         We see in the table above that if we <code>delete</code> the copy
-        operations, the <strong>move operations also get deleted</strong>. This
-        makes our <strong>wrapper less useful</strong> because the resource is
-        stuck in the context where it was created. Implementing a move lets us
-        safely transfer it to a new context.
+        operations, the move operations also get deleted. This makes our wrapper
+        less useful because the resource is stuck in the context where it was
+        created. Implementing a move lets us safely transfer it to a new
+        context.
       </p>
       <p>
-        <strong>Without a move operation</strong>, we are also potentially
-        <strong>giving up performance</strong>. If we have a
-        <strong>value that could be moved</strong> (<code>rvalue</code>) but
-        <strong>no move operation</strong> is available, the value will be
-        <strong>copied instead</strong> — this can be slow.
+        Without a move operation, we are also potentially giving up performance.
+        If we have a value that could be moved (<code>rvalue</code>) but no move
+        operation is available, the value will be copied instead — this can be
+        slow.
       </p>
       <p>
-        Because of the two use cases above, you usually want to
-        <strong>expand the rule of 3</strong> to include the
-        <strong>move constructor</strong> and
-        <strong>move assignment</strong> as well. This is known as
+        Because of the two use cases above, you usually want to expand the rule
+        of 3 to include the move constructor and move assignment as well. This
+        is known as
         <a
           href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five"
           >the rule of five</a
-        >. So the <strong>rule of 3 makes us safe</strong> and the
-        <strong>rule of 5 gives performance and convenience</strong>.
+        >. So the rule of 3 makes us safe and the rule of 5 gives performance
+        and convenience.
       </p>
 
       <table>
@@ -450,22 +422,18 @@
         </tbody>
       </table>
       <p>
-        I wondered why the <strong>rule of 3</strong> and the
-        <strong>rule of 5</strong>,
-        <strong>aren't enforced by the compiler</strong>. It
-        <strong>couldn't be an error</strong> because that would break too many
-        existing programs but it <strong>could at least be a warning</strong>.
-        It turns out the C++ committee did exactly this for C++11 by updating
-        the wording (<a
+        I wondered why the rule of 3 and the rule of 5, aren't enforced by the
+        compiler. It couldn't be an error because that would break too many
+        existing programs but it could at least be a warning. It turns out the
+        C++ committee did exactly this for C++11 by updating the wording (<a
           href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3337.pdf"
           >PDF, section 12.8/7</a
         >) so that such a warning could be generated.
       </p>
       <p>
         In GCC and Clang, the warning is hidden behind the
-        <code>-Wdeprecated-copy-dtor</code> flag which is
-        <strong>disabled by default</strong> and
-        <strong>almost never enabled</strong> (not part of <code>-Wall</code>,
+        <code>-Wdeprecated-copy-dtor</code> flag which is disabled by default
+        and almost never enabled (not part of <code>-Wall</code>,
         <code>-Wextra</code> or <code>-Wpedantic</code>). This is why I had
         never seen it and, hopefully, I'll remember to turn it on for my future
         projects.
@@ -476,9 +444,8 @@
         >Nice wrapper — Rule of 5
       </h1>
       <p>
-        To round up our example, let's <strong>upgrade it</strong> from using
-        the rule of 3 <strong>to the rule of 5</strong> by implementing the
-        <strong>move operations</strong>.
+        To round up our example, let's upgrade it from using the rule of 3 to
+        the rule of 5 by implementing the move operations.
       </p>
       <pre><code class="hljs language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">FileWrapper</span> {
 <span class="hljs-keyword">public</span>:
@@ -500,12 +467,11 @@
 </code></pre>
       <p>Once again, it gets a name update, since it's now fleshed out.</p>
       <p>
-        There's an important implementation detail with the
-        <strong>move operations</strong>, the <strong>destructor</strong> of the
-        <strong>object that was moved will still be called</strong> but it
-        <strong>shouldn't free the resource</strong>. This means that we have to
-        put the original object in a state where the resource won't be released
-        by the destructor.
+        There's an important implementation detail with the move operations, the
+        destructor of the object that was moved will still be called but it
+        shouldn't free the resource. This means that we have to put the original
+        object in a state where the resource won't be released by the
+        destructor.
       </p>
       <p>
         In our example, we do that by setting the original <code>fd</code> to
@@ -561,45 +527,33 @@ FileWrapper::<span class="hljs-built_in">FileWrapper</span>(FileWrapper &#x26;&#
       <p>
         We should now have a good enough understanding of RAII to put it to use.
         Once we have a RAII wrapper around a resource, it becomes very hard to
-        misuse it which allows us to create
-        <strong>sealed abstractions around resources</strong>. Most of the time,
-        the <strong>standard library has an existing wrapper</strong> so we
-        simply have to <strong>use those</strong>.
+        misuse it which allows us to create sealed abstractions around
+        resources. Most of the time, the standard library has an existing
+        wrapper so we simply have to use those.
       </p>
       <p>
         One important detail that briefly mentioned is that a
         <code>struct</code> or <code>class</code> that uses our
         <code>FileWrapper</code> won't have default copy operations because
         <code>FileWrapper</code> doesn't have copy operations. This means that,
-        <strong
-          >any class that properly implements RAII can safely be put in any
-          other class</strong
-        >
-        and it will <strong>just work</strong>.
+        any class that properly implements RAII can safely be put in any other
+        class and it will just work.
       </p>
       <p>
-        We've successfully
-        <strong>isolated all the complexity of resource management</strong> into
-        our wrapper class making <strong>modern C++</strong> feel
-        <strong>like a garbage collected language</strong> only it's
-        <strong>faster</strong> and it <strong>works for any resource</strong>,
-        not just memory. This happens because the
-        <strong>defaults just do the right thing</strong> if you follow the rule
-        of 5.
+        We've successfully isolated all the complexity of resource management
+        into our wrapper class making modern C++ feel like a garbage collected
+        language only it's faster and it works for any resource, not just
+        memory. This happens because the defaults just do the right thing if you
+        follow the rule of 5.
       </p>
       <p>
-        In a codebase, there are usually have a
-        <strong>few resource types</strong> that are
-        <strong>used all over the code</strong>. For
-        <strong>each resource</strong>, we use an
-        <strong>RAII wrapper</strong> from the standard library or, in a rare
-        case, we implement one ourselves. This is the only time we really need
-        to think about resource management and in the
-        <strong>rest of the code</strong>, which is the
-        <strong>majority</strong>, we
-        <strong>don't worry about resource management</strong>. C++'s defaults
-        of the special operations do the heavy lifting for us. This is known as
-        the
+        In a codebase, there are usually have a few resource types that are used
+        all over the code. For each resource, we use an RAII wrapper from the
+        standard library or, in a rare case, we implement one ourselves. This is
+        the only time we really need to think about resource management and in
+        the rest of the code, which is the majority, we don't worry about
+        resource management. C++'s defaults of the special operations do the
+        heavy lifting for us. This is known as the
         <a
           href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-zero"
           >rule of zero</a
@@ -616,9 +570,9 @@ FileWrapper::<span class="hljs-built_in">FileWrapper</span>(FileWrapper &#x26;&#
       </h1>
       <p>
         RAII makes resource management safe, even when exceptions cause an
-        unpredicted control flow to happen, but it has one main limitation:
-        <strong>RAII doesn't prevent use after free</strong>. If you move a
-        resource, you can still use it afterwards.
+        unpredicted control flow to happen, but it has one main limitation: RAII
+        doesn't prevent use after free. If you move a resource, you can still
+        use it afterwards.
       </p>
       <h1 id="further-reading">
         <a aria-hidden="true" tabindex="-1" href="#further-reading"
