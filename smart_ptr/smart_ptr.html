@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/static/katex.min.css" />
+    <link rel="stylesheet" href="/static/tufte.css" />
+  </head>
+  <body>
+    <header>
+      <h4>
+        <a href="/" style="background: none; color: var(--fg)">
+          green7ea's blog
+        </a>
+      </h4>
+
+      <a href="https://github.com/green7ea/blog" style="background: none">
+        <svg
+          height="32"
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          version="1.1"
+          width="32"
+          data-view-component="true"
+          class="octicon octicon-mark-github v-align-middle"
+        >
+          <path
+            d="M12 1C5.9225 1 1 5.9225 1 12C1 16.8675 4.14875 20.9787 8.52125 22.4362C9.07125 22.5325 9.2775 22.2025 9.2775 21.9137C9.2775 21.6525 9.26375 20.7862 9.26375 19.865C6.5 20.3737 5.785 19.1912 5.565 18.5725C5.44125 18.2562 4.905 17.28 4.4375 17.0187C4.0525 16.8125 3.5025 16.3037 4.42375 16.29C5.29 16.2762 5.90875 17.0875 6.115 17.4175C7.105 19.0812 8.68625 18.6137 9.31875 18.325C9.415 17.61 9.70375 17.1287 10.02 16.8537C7.5725 16.5787 5.015 15.63 5.015 11.4225C5.015 10.2262 5.44125 9.23625 6.1425 8.46625C6.0325 8.19125 5.6475 7.06375 6.2525 5.55125C6.2525 5.55125 7.17375 5.2625 9.2775 6.67875C10.1575 6.43125 11.0925 6.3075 12.0275 6.3075C12.9625 6.3075 13.8975 6.43125 14.7775 6.67875C16.8813 5.24875 17.8025 5.55125 17.8025 5.55125C18.4075 7.06375 18.0225 8.19125 17.9125 8.46625C18.6138 9.23625 19.04 10.2125 19.04 11.4225C19.04 15.6437 16.4688 16.5787 14.0213 16.8537C14.42 17.1975 14.7638 17.8575 14.7638 18.8887C14.7638 20.36 14.75 21.5425 14.75 21.9137C14.75 22.2025 14.9563 22.5462 15.5063 22.4362C19.8513 20.9787 23 16.8537 23 12C23 5.9225 18.0775 1 12 1Z"
+          ></path>
+        </svg>
+      </a>
+    </header>
+
+    <article id="article">
+      <nav class="toc">
+        <ol class="toc-level toc-level-1">
+          <li class="toc-item toc-item-h1">
+            <a
+              class="toc-link toc-link-h1"
+              href="#pointers-on-cs-smart-pointers"
+              >Pointers on C++'s smart pointers</a
+            >
+            <ol class="toc-level toc-level-2">
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#tldr">TL;DR</a>
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a
+                  class="toc-link toc-link-h2"
+                  href="#smart-pointers-as-parameters"
+                  >Smart pointers as parameters</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#const-correctness"
+                  >Const correctness</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a
+                  class="toc-link toc-link-h2"
+                  href="#the-shared_ptr-const-trick"
+                  >The shared_ptr const trick</a
+                >
+              </li>
+              <li class="toc-item toc-item-h2">
+                <a class="toc-link toc-link-h2" href="#conclusion"
+                  >Conclusion</a
+                >
+              </li>
+            </ol>
+          </li>
+        </ol>
+      </nav>
+      <h1 id="pointers-on-cs-smart-pointers">
+        <a
+          aria-hidden="true"
+          tabindex="-1"
+          href="#pointers-on-cs-smart-pointers"
+          ><span class="icon icon-link"></span></a
+        >Pointers on C++'s smart pointers
+      </h1>
+      <blockquote>
+        <p>Sorry for the title, I just couldn't help myself.</p>
+      </blockquote>
+      <h2 id="tldr">
+        <a aria-hidden="true" tabindex="-1" href="#tldr"
+          ><span class="icon icon-link"></span></a
+        >TL;DR
+      </h2>
+      <p>
+        Don't use smart pointers in function parameters unless you're taking
+        ownership (shared or exclusive).
+      </p>
+      <p>Return stack objects instead of smart pointers when possible.</p>
+      <pre><code class="hljs language-c++"><span class="hljs-comment">// bad</span>
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">count</span><span class="hljs-params">(<span class="hljs-type">const</span> std::shared_ptr&#x3C;std::string> &#x26;s, <span class="hljs-type">char</span> d)</span></span>;
+
+<span class="hljs-comment">// good for read only access</span>
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">count</span><span class="hljs-params">(<span class="hljs-type">const</span> std::string &#x26;s, <span class="hljs-type">char</span> d)</span></span>;
+
+<span class="hljs-comment">// good for making a copy</span>
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">take_copy</span><span class="hljs-params">(std:shared_ptr&#x3C;std:string> &#x26;&#x26;s)</span></span>;
+</code></pre>
+      <p>
+        Avoid using pointers, the following is the preference for creating
+        objects:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Pointer type</th>
+            <th>Comment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>T</code> (stack allocation)</td>
+            <td>Best option</td>
+          </tr>
+          <tr>
+            <td><code>unique_ptr&#x3C;T></code></td>
+            <td>If you really need a stack allocation</td>
+          </tr>
+          <tr>
+            <td><code>shared_ptr&#x3C;const T></code></td>
+            <td>Not great, but sometimes necessary</td>
+          </tr>
+          <tr>
+            <td><code>T *</code></td>
+            <td>
+              When working with C code, shouldn't be exposed long
+              <a
+                href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Ri-raw"
+                >I.11</a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td><code>shared_ptr&#x3C;T></code></td>
+            <td>Be careful with this one, avoid</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2 id="smart-pointers-as-parameters">
+        <a aria-hidden="true" tabindex="-1" href="#smart-pointers-as-parameters"
+          ><span class="icon icon-link"></span></a
+        >Smart pointers as parameters
+      </h2>
+      <p>
+        Let's take the example from the TL;DR, and explain why having smart
+        pointers in the interface is a bad idea.
+      </p>
+      <pre><code class="hljs language-c++"><span class="hljs-comment">// bad</span>
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">count_bad</span><span class="hljs-params">(<span class="hljs-type">const</span> std::shared_ptr&#x3C;std::string> &#x26;s, <span class="hljs-type">char</span> d)</span></span>;
+
+<span class="hljs-comment">// good</span>
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">count_good</span><span class="hljs-params">(<span class="hljs-type">const</span> std::string &#x26;s, <span class="hljs-type">char</span> d)</span></span>;
+</code></pre>
+      <p>
+        In this use case, counting is only reading the string, not making a copy
+        of the shared pointer.
+      </p>
+      <p>
+        The first thing to mention is that they are both easily callable if I
+        have a smart pointer object.
+      </p>
+      <pre><code class="hljs language-c++"><span class="hljs-keyword">auto</span> shared = std::<span class="hljs-built_in">make_shared</span>&#x3C;std::string>(<span class="hljs-string">"Hello shared world!"</span>);
+
+<span class="hljs-type">int</span> bad = <span class="hljs-built_in">count_bad</span>(shared, <span class="hljs-string">'l'</span>);
+
+<span class="hljs-comment">// Calling the non-smart pointer is as easy as adding a *</span>
+<span class="hljs-type">int</span> good = <span class="hljs-built_in">count_good</span>(*shared, <span class="hljs-string">'l'</span>);
+</code></pre>
+      <p>
+        They're both as easy to call if I'm already using the same smart pointer
+        type as the function but much harder to call if I'm not. This puts
+        pressure on the caller to store their objects in a smart pointer and in
+        the worst case, all objects end up being stored in smart pointers even
+        when they don't have to be.
+      </p>
+      <p>
+        Using smart pointers as a parameter also creates a link between the
+        function parameter and the outside object: if the function changes from
+        a <code>unique_ptr</code> to a <code>shared_ptr</code> the calling code
+        as to be updated. There's the option to rewrap the object or switch to a
+        <code>shared_ptr</code> — neither of these are good choices.
+      </p>
+      <p>
+        When you use smart pointers, you're leaving performance on the table —
+        you rule out faster options like using the stack or an arena alocator.
+        Most of the time you don't need the performance but it's nice to be able
+        to get it without major refactoring when you need it.
+      </p>
+      <p>
+        Lastly, the intention of a function using a smart pointer is also
+        unclear. It could be making a copy for later use or it could be simply
+        reading the pointer's values during the call. With a
+        <code>const shared_ptr&#x3C;T> &#x26;</code>, both are possible, with a
+        <code>const T &#x26;</code>, it's clear that we're only reading values.
+      </p>
+      <p>
+        I hope I've convinced you that if you only need to read a parameter of
+        type <code>T</code>, use <code>const T &#x26;</code> instead of
+        <code>const shared_ptr&#x3C;T> &#x26;</code> — only take
+        <code>const shared_ptr&#x3C;T> &#x26;</code> if you are taking a copy of
+        the shared pointer for future use. There are no downsides but many
+        upsides:
+      </p>
+      <ol>
+        <li>easier to call,</li>
+        <li>better decoupling between caller and callee,</li>
+        <li>can be faster when needed,</li>
+        <li>clearer intention.</li>
+      </ol>
+      <p>All of this to avoid having to use <code>operator*</code>!</p>
+      <h2 id="const-correctness">
+        <a aria-hidden="true" tabindex="-1" href="#const-correctness"
+          ><span class="icon icon-link"></span></a
+        >Const correctness
+      </h2>
+      <p>
+        If you aren't yet convinced, the bad version of the interface doesn't
+        give you the <code>const</code> protections you might expect:
+      </p>
+      <pre><code class="hljs language-c++"><span class="hljs-keyword">auto</span> shared = std::<span class="hljs-built_in">make_shared</span>&#x3C;std::string>(<span class="hljs-string">"Hello shared world!"</span>);
+
+<span class="hljs-built_in">printf</span>(<span class="hljs-string">"Good count\n"</span>);
+<span class="hljs-type">int</span> good = <span class="hljs-built_in">count_good</span>(*shared, <span class="hljs-string">'l'</span>);
+<span class="hljs-built_in">printf</span>(<span class="hljs-string">"'%s' contains %i 'l's.\n\n"</span>, shared-><span class="hljs-built_in">c_str</span>(), good);
+
+<span class="hljs-built_in">printf</span>(<span class="hljs-string">"Bad count\n"</span>);
+<span class="hljs-type">int</span> bad = <span class="hljs-built_in">count_bad</span>(shared, <span class="hljs-string">'l'</span>);
+<span class="hljs-built_in">printf</span>(<span class="hljs-string">"'%s' contains %i 'l's.\n\n"</span>, shared-><span class="hljs-built_in">c_str</span>(), bad);
+</code></pre>
+      <p>Prints</p>
+      <pre><code>Good count
+'Hello shared world!' contains 3 'l's.
+
+Bad count
+'He**o shared wor*d!' contains 3 'l's.
+</code></pre>
+      <p>
+        Notice the <code>*</code>s where the <code>l</code>s used to be for the
+        bad count. The object that is pointed to in a
+        <code>const shared_ptr&#x3C;T></code> can be modified! It's the same
+        with a unique pointer.
+      </p>
+      <p>
+        A <code>const shared_ptr&#x3C;T></code> doesn't protect the
+        <code>T</code> from being modified but a
+        <code>shared_ptr&#x3C;const T></code> does. This is done because C++
+        requires a copy constructor to work with a <code>const</code> object —
+        doing otherwise breaks basic functionality like returning an object via
+        a temporary.
+      </p>
+      <h2 id="the-shared_ptr-const-trick">
+        <a aria-hidden="true" tabindex="-1" href="#the-shared_ptr-const-trick"
+          ><span class="icon icon-link"></span></a
+        >The shared_ptr const trick
+      </h2>
+      <p>
+        We can still use <code>const</code> to our advantage by using the
+        <code>shared_ptr&#x3C;const T></code> type to restrict modification.
+        This is a really useful trick to overcome the <code>shared_ptr</code>'s
+        biggest limitation — loss of control as to where and when it can change.
+      </p>
+      <p>
+        We're always told to
+        <a
+          href="https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Ri-global"
+          >Avoid non-const global variables (I.2)</a
+        >
+        and the reasoning is:
+      </p>
+      <blockquote>
+        <p>
+          Non-const global variables hide dependencies and make the dependencies
+          subject to unpredictable changes.
+        </p>
+      </blockquote>
+      <p>
+        <code>const shared_ptr&#x3C;T></code> have the same problem as a global
+        variable — any code that can get a hold of the pointer can make an
+        unpredictable change.
+      </p>
+      <p>
+        Let's say we have a race condition on the data held in a
+        <code>const shared_ptr&#x3C;T></code>, we have to figure out:
+      </p>
+      <blockquote>
+        <p>Which thread modifies the shared pointer?</p>
+      </blockquote>
+      <p>
+        You can't easily answer that question without auditing the code that can
+        access the pointer. Imagine having to fix a race condition with a shared
+        pointer!
+      </p>
+      <p>
+        <code>const</code> global variables don't have the same weakness as the
+        <code>non-const</code> global variables — the equivalent for
+        <code>shared_ptr</code> is <code>shared_ptr&#x3C;const T></code>.
+      </p>
+      <p>
+        Shared pointers have an extra trick where you can have a
+        <code>shared_ptr&#x3C;T></code> and give everyone else a
+        <code>shared_ptr&#x3C;const T></code>. It becomes easier to audit where
+        the data can be modified.
+      </p>
+      <p>
+        Here's a simple example, we have a configuration that we load from a
+        file and want to watch for changes. We hand out the configuration to
+        many parts of our program via a <code>shared_ptr&#x3C;const T></code> so
+        they get updates when the configuration changes. In the example, only
+        the <code>ConfigWatcher</code> can update the configuration object and
+        no one else.
+      </p>
+      <pre><code class="hljs language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">ConfigWatcher</span> {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-comment">/**
+   * By returning a shared_ptr to a const Config, we make sure that
+   * we're the only ones that can modify the underlying configuration.
+   */</span>
+  <span class="hljs-function">std::shared_ptr&#x3C;<span class="hljs-type">const</span> Config> <span class="hljs-title">get_config</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> config;
+  }
+
+  <span class="hljs-comment">/**
+   * This could be triggered when the config is updated.
+   */</span>
+  <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">update_config</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-comment">// Code that can modify config can only be in this class.</span>
+  }
+
+<span class="hljs-keyword">private</span>:
+  std::shared_ptr&#x3C;Config> config;
+};
+</code></pre>
+      <h2 id="conclusion">
+        <a aria-hidden="true" tabindex="-1" href="#conclusion"
+          ><span class="icon icon-link"></span></a
+        >Conclusion
+      </h2>
+      <p>
+        Smart pointers in C++ are nuanced — they are a powerful tool that have
+        shortcomings. They make heap allocation much safer but heap allocation
+        shouldn't become the default or a lot of C++'s usefullness is left on
+        the table.
+      </p>
+    </article>
+    <script type="module">
+      import mermaid from "/static/mermaid.esm.min.mjs";
+
+      function update_content(new_content) {
+        document.getElementById("article").innerHTML = new_content;
+      }
+
+      function connect() {
+        const l = window.location;
+        const url = "ws://" + l.host + l.pathname;
+        const ws = new WebSocket(url);
+
+        ws.addEventListener("message", (event) => {
+          update_content(event.data);
+          mermaid.run();
+        });
+      }
+
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+      });
+      window.addEventListener("load", connect);
+    </script>
+  </body>
+</html>
